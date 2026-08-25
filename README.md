@@ -1,4 +1,13 @@
-# UWB Collision Avoidance System: Edge to AWS
+# Custom Embedded Linux Edge Gateway: Buildroot & QEMU
+
+<!-- Badges de Tecnologías -->
+
+![Linux](https://img.shields.io/badge/Embedded_Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
+![Python](https://img.shields.io/badge/Python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![C++](https://img.shields.io/badge/C++-%2300599C.svg?style=for-the-badge&logo=c%2B%2B&logoColor=white)
+![Espressif](https://img.shields.io/badge/ESP32-E7352C?style=for-the-badge&logo=espressif&logoColor=white)
+![MQTT](https://img.shields.io/badge/MQTT-660066?style=for-the-badge&logo=mqtt&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS_IoT_Core-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white)
 
 Sistema IoT de detección de colisiones utilizando tecnología UWB (Ultra-Wideband) con ESP32, un Gateway local (Edge Computing) emulado en Linux/QEMU, y conexión segura a AWS IoT Core.
 
