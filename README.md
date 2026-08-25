@@ -6,53 +6,7 @@ Sistema IoT de detección de colisiones utilizando tecnología UWB (Ultra-Wideba
 
 ## 🏗️ Arquitectura del Sistema
 
-```mermaid
-flowchart LR
-    %% Definición de estilos
-    classDef hardware fill:#f9f9f9,stroke:#333,stroke-width:2px;
-    classDef windows fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
-    classDef wsl fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
-    classDef embedded fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
-    classDef aws fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
-
-    subgraph Hardware ["Frontera Física (Hardware)"]
-        Tag([Tag UWB]) -- "RF (Medición)" --> Anchor([Anchor UWB <br> ESP32])
-    end
-
-    subgraph PC ["Host (Windows)"]
-        FW[Firewall <br> Regla TCP 1883]
-        Proxy[Portproxy <br> netsh v4tov4]
-        Anchor -- "Wi-Fi (MQTT)" --> FW
-        FW --> Proxy
-    end
-
-    subgraph WSL ["Virtualización (WSL2)"]
-        Ubuntu[Red Interna <br> Ubuntu eth0]
-        Proxy -- "Túnel" --> Ubuntu
-    end
-
-    subgraph QEMU ["Embedded Linux (Buildroot / QEMU)"]
-        Mosquitto[(Mosquitto <br> Broker Local)]
-        PythonBridge{gateway.py <br> Lógica Edge}
-        Ubuntu -- "hostfwd <br> (0.0.0.0:1883)" --> Mosquitto
-        Mosquitto -- "JSON (Local)" --> PythonBridge
-    end
-
-    subgraph Cloud ["Nube (AWS)"]
-        AWSIoT((AWS IoT Core))
-        PythonBridge -- "TLS/MQTTS <br> Puerto 8883" --> AWSIoT
-    end
-
-    %% Asignación de clases
-    Tag:::hardware
-    Anchor:::hardware
-    FW:::windows
-    Proxy:::windows
-    Ubuntu:::wsl
-    Mosquitto:::embedded
-    PythonBridge:::embedded
-    AWSIoT:::aws
-```
+![Diagrama de Arquitectura del Sistema](./docs/arquitecture.diagram.svg)
 
 El proyecto se divide en tres capas principales:
 
