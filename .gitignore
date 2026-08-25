@@ -1,0 +1,36 @@
+# ==========================================
+# 1. Configuración sensible y notas locales
+# ==========================================
+firmware/include/config.h
+firmware/actualizarIP.txt
+
+# ==========================================
+# 2. Compilación de Firmware (PlatformIO / ESP32)
+# ==========================================
+.pio/
+*/.pio/
+build/
+*/build/
+*.bin
+*.elf
+*.hex
+sdkconfig.old
+sdkconfig.*.old
+
+# ==========================================
+# 3. Gateway (Python)
+# ==========================================
+__pycache__/
+*/__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.env
+
+# ==========================================
+# 4. Entorno de desarrollo (VS Code / OS)
+# ==========================================
+.vscode/
+*/.vscode/
+.DS_Store
+Thumbs.db
