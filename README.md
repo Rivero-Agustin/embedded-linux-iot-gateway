@@ -6,7 +6,7 @@ Sistema IoT de detección de colisiones utilizando tecnología UWB (Ultra-Wideba
 
 ## 🏗️ Arquitectura del Sistema
 
-![Diagrama de Arquitectura del Sistema](./docs/arquitecture.diagram.svg)
+![Diagrama de Arquitectura del Sistema](./docs/architecture.diagram.png)
 
 El proyecto se divide en tres capas principales:
 
