@@ -15,8 +15,6 @@
 
 IoT collision avoidance system using UWB (Ultra-Wideband) technology with ESP32, a local Edge Computing Gateway emulated on Linux/QEMU, and a secure connection to AWS IoT Core.
 
-> 🇪🇸 **Looking for the Spanish version?** Check out [README-es.md](./README-es.md).
-
 ---
 
 ## 🏗️ System Architecture
