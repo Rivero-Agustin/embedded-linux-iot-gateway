@@ -2,7 +2,7 @@
   🌎 <a href="README.md">English</a> | 🇪🇸 <a href="README-es.md">Español</a>
 </div>
 
-# Custom Embedded Linux Edge Gateway: Buildroot & QEMU
+# Gateway IoT Edge en Linux Embebido: Buildroot & QEMU
 
 <!-- Badges de Tecnologías -->
 

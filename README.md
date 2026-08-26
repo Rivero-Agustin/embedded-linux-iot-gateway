@@ -1,3 +1,7 @@
+<div align="right">
+  🌎 <a href="README.md">English</a> | 🇪🇸 <a href="README-es.md">Español</a>
+</div>
+
 # Custom Embedded Linux Edge Gateway: Buildroot & QEMU
 
 <!-- Technology Badges -->
@@ -99,10 +103,10 @@ python3 gateway.py
 
 ## 📡 MQTT Topics
 
-| Topic                   | Source ➔ Destination   | Protocol           | Description                                       |
-| :---------------------- | :--------------------- | :----------------- | :------------------------------------------------ |
-| `gateway/uwb/telemetry` | ESP32 ➔ Gateway        | MQTT (1883)        | Local telemetry with UWB distance measurements.   |
-| `gateway/uwb/alerts`    | Gateway ➔ AWS IoT Core | MQTTS (8883 / TLS) | Critical proximity or anomaly alerts.             |
+| Topic                   | Source ➔ Destination   | Protocol           | Description                                     |
+| :---------------------- | :--------------------- | :----------------- | :---------------------------------------------- |
+| `gateway/uwb/telemetry` | ESP32 ➔ Gateway        | MQTT (1883)        | Local telemetry with UWB distance measurements. |
+| `gateway/uwb/alerts`    | Gateway ➔ AWS IoT Core | MQTTS (8883 / TLS) | Critical proximity or anomaly alerts.           |
 
 ---
 
