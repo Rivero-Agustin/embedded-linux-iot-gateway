@@ -1,6 +1,6 @@
 # Custom Embedded Linux Edge Gateway: Buildroot & QEMU
 
-<!-- Badges de Tecnologías -->
+<!-- Technology Badges -->
 
 ![Linux](https://img.shields.io/badge/Embedded_Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
 ![Python](https://img.shields.io/badge/Python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
@@ -9,103 +9,106 @@
 ![MQTT](https://img.shields.io/badge/MQTT-660066?style=for-the-badge&logo=mqtt&logoColor=white)
 ![AWS](https://img.shields.io/badge/AWS_IoT_Core-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white)
 
-Sistema IoT de detección de colisiones utilizando tecnología UWB (Ultra-Wideband) con ESP32, un Gateway local (Edge Computing) emulado en Linux/QEMU, y conexión segura a AWS IoT Core.
+IoT collision avoidance system using UWB (Ultra-Wideband) technology with ESP32, a local Edge Computing Gateway emulated on Linux/QEMU, and a secure connection to AWS IoT Core.
+
+> 🇪🇸 **Looking for the Spanish version?** Check out [README-es.md](./README-es.md).
 
 ---
 
-## 🏗️ Arquitectura del Sistema
+## 🏗️ System Architecture
 
-![Diagrama de Arquitectura del Sistema](./docs/architecture.diagram.png)
+![System Architecture Diagram](./docs/architecture.diagram.png)
 
-El proyecto se divide en tres capas principales:
+The project is divided into three main layers:
 
-1. **Percepción (Hardware):** Nodos ESP32 (Tags y Anchors) con módulos UWB midiendo distancias físicas.
-2. **Edge Computing (Gateway):** Un entorno Linux ligero (Buildroot) emulado en QEMU. Ejecuta un script en Python que procesa la telemetría, aplica reglas de negocio (detección de anomalías/colisiones) y actúa como puente.
-3. **Nube (AWS IoT Core):** Recepción de alertas críticas mediante MQTT sobre TLS (MQTTS).
+1. **Perception (Hardware):** ESP32 nodes (Tags and Anchors) with UWB modules measuring physical distances.
+2. **Edge Computing (Gateway):** A lightweight Linux environment (Buildroot) emulated on QEMU. It runs a Python script that processes telemetry, applies business logic (anomaly and collision detection), and acts as a bridge.
+3. **Cloud (AWS IoT Core):** Reception of critical alerts via MQTT over TLS (MQTTS).
 
 ---
 
-## 📁 Estructura del Repositorio
+## 📁 Repository Structure
 
-- `firmware/`: Código fuente C++ para el ESP32 (Anchor y Tag con PlatformIO).
-- `gateway/`: Script principal en Python `gateway.py` que corre en el entorno Linux.
-- `README.md`: Documentación y guía de despliegue.
+- `firmware/`: C++ source code for the ESP32 (Anchor and Tag using PlatformIO).
+- `gateway/`: Main Python script `gateway.py` running on the Linux environment.
+- `README.md`: English documentation and deployment guide.
+- `README-es.md`: Documentación en español.
 
 > [!WARNING]
-> **Nota de Seguridad:** Los certificados de AWS (`.pem`, `.key`, `.crt`) necesarios para el Gateway **NO** están incluidos en este repositorio por seguridad. Deben generarse en AWS IoT Core y ubicarse en el entorno Linux / QEMU (`/root/certs`).
+> **Security Note:** AWS certificates (`.pem`, `.key`, `.crt`) required for the Gateway are **NOT** included in this repository for security reasons. They must be generated in AWS IoT Core and placed in the Linux/QEMU environment (`/root/certs`).
 
 ---
 
-## 🚀 Guía de Despliegue Local (Entorno Windows / WSL2)
+## 🚀 Local Deployment Guide (Windows / WSL2 Environment)
 
-Debido a que el Gateway se ejecuta en QEMU dentro de WSL2 (Windows Subsystem for Linux), es necesario configurar el enrutamiento de red para que el ESP32 físico pueda comunicarse con el broker MQTT emulado.
+Since the Gateway runs in QEMU within WSL2 (Windows Subsystem for Linux), network routing needs to be configured so that the physical ESP32 can communicate with the emulated MQTT broker.
 
-### 1. Configuración de Red en Windows (Portproxy)
+### 1. Windows Network Configuration (Portproxy)
 
-WSL2 asigna una IP dinámica en cada reinicio. Para que el ESP32 alcance a QEMU, debemos crear un túnel.
+WSL2 assigns a dynamic IP on every reboot. To allow the ESP32 to reach QEMU, we must create a port proxy tunnel.
 
-1. Abrir **PowerShell como Administrador** y obtener la IP de WSL:
+1. Open **PowerShell as Administrator** and retrieve the WSL IP:
 
    ```powershell
    wsl -e hostname -i
    ```
 
-2. Crear el túnel (reemplazar `<IP_WSL>` por la obtenida):
+2. Create the tunnel (replace `<WSL_IP>` with the obtained IP):
    ```powershell
-   netsh interface portproxy add v4tov4 listenport=1883 listenaddress=0.0.0.0 connectport=1883 connectaddress=<IP_WSL>
+   netsh interface portproxy add v4tov4 listenport=1883 listenaddress=0.0.0.0 connectport=1883 connectaddress=<WSL_IP>
    ```
 
-### 2. Configuración del Firewall de Windows
+### 2. Windows Firewall Configuration
 
-Para permitir la entrada de telemetría desde el ESP32:
+To allow inbound telemetry traffic from the ESP32:
 
-1. Abrir **Firewall de Windows Defender con seguridad avanzada**.
-2. Crear una **Nueva Regla de Entrada** -> **Puerto** -> **TCP** -> `1883`.
-3. Seleccionar **Permitir conexión**.
-4. **Importante:** Marcar solo los perfiles _Dominio_ y _Privado_ (dejar _Público_ desmarcado para evitar vulnerabilidades en redes abiertas).
+1. Open **Windows Defender Firewall with Advanced Security**.
+2. Create a **New Inbound Rule** -> **Port** -> **TCP** -> `1883`.
+3. Select **Allow the connection**.
+4. **Important:** Select only the _Domain_ and _Private_ profiles (leave _Public_ unchecked to prevent vulnerabilities on open networks).
 
-### 3. Ejecución del Gateway (QEMU)
+### 3. Running the Gateway (QEMU)
 
-Dentro de la terminal de Ubuntu (WSL), levantar el sistema emulado asegurando que el reenvío de puertos esté configurado (`hostfwd=tcp:0.0.0.0:1883-:1883` en el script de arranque).
+Inside the Ubuntu (WSL) terminal, launch the emulated system ensuring port forwarding is configured (`hostfwd=tcp:0.0.0.0:1883-:1883` in the startup script).
 
-Una vez dentro de QEMU, iniciar el broker y el script puente:
+Once inside QEMU, start the broker and the bridge script:
 
 ```bash
-# Iniciar broker MQTT local en segundo plano (si no inicia automáticamente)
+# Start local MQTT broker in the background (if not started automatically)
 mosquitto -d
 
-# Ejecutar el puente hacia AWS
+# Run the AWS bridge script
 python3 gateway.py
 ```
 
-### 4. Configuración del Firmware ESP32
+### 4. ESP32 Firmware Configuration
 
-1. Copiar `firmware/include/config.example.h` a `firmware/include/config.h`:
+1. Copy `firmware/include/config.example.h` to `firmware/include/config.h`:
    ```bash
    cp firmware/include/config.example.h firmware/include/config.h
    ```
-2. Modificar `config.h` con tus credenciales de red y la IP local de tu PC Windows:
+2. Edit `config.h` with your network credentials and your Windows host local IP:
    ```c
-   #define WIFI_SSID "TU_RED_WIFI"
-   #define WIFI_PASS "TU_CONTRASEÑA"
+   #define WIFI_SSID "YOUR_WIFI_SSID"
+   #define WIFI_PASS "YOUR_WIFI_PASSWORD"
    #define MQTT_BROKER_URI "mqtt://192.168.1.X:1883"
    ```
-3. Compilar y subir el firmware al ESP32 utilizando **PlatformIO**.
+3. Build and flash the firmware to the ESP32 using **PlatformIO**.
 
 ---
 
-## 📡 Tópicos MQTT
+## 📡 MQTT Topics
 
-| Tópico                  | Origen ➔ Destino       | Protocolo          | Descripción                                       |
+| Topic                   | Source ➔ Destination   | Protocol           | Description                                       |
 | :---------------------- | :--------------------- | :----------------- | :------------------------------------------------ |
-| `gateway/uwb/telemetry` | ESP32 ➔ Gateway        | MQTT (1883)        | Telemetría local con mediciones de distancia UWB. |
-| `gateway/uwb/alerts`    | Gateway ➔ AWS IoT Core | MQTTS (8883 / TLS) | Alertas de proximidad crítica o anomalías.        |
+| `gateway/uwb/telemetry` | ESP32 ➔ Gateway        | MQTT (1883)        | Local telemetry with UWB distance measurements.   |
+| `gateway/uwb/alerts`    | Gateway ➔ AWS IoT Core | MQTTS (8883 / TLS) | Critical proximity or anomaly alerts.             |
 
 ---
 
-## ⚙️ Reglas de Detección de Colisiones (Edge)
+## ⚙️ Collision Detection Rules (Edge)
 
-El Gateway evalúa los datos localmente para reducir la latencia y el consumo de ancho de banda hacia la nube:
+The Gateway evaluates data locally to reduce latency and cloud bandwidth consumption:
 
-- **Peligro Sostenido:** Se dispara si la distancia medida es **< 2.0 m** durante 3 lecturas consecutivas.
-- **Salto Brusco (Anomalía):** Se dispara si la diferencia entre dos lecturas consecutivas es **> 5.0 m** (filtro de ruido y fallo de medición del sensor).
+- **Sustained Danger:** Triggered if the measured distance is **< 2.0 m** for 3 consecutive readings.
+- **Abrupt Jump (Anomaly):** Triggered if the difference between two consecutive readings is **> 5.0 m** (sensor noise filter and measurement glitch detection).
