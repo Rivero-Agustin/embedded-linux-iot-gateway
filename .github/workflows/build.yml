@@ -46,6 +46,9 @@ jobs:
           #define MQTT_TOPIC_COMMANDS  "dummy/commands"
           EOF
 
+      - name: 🧪 Ejecutar Pruebas Unitarias (Native)
+        run: pio test -d firmware -e native
+
       - name: ⚙️ Compilar Firmware (ESP32)
         run: pio run -d firmware
 
