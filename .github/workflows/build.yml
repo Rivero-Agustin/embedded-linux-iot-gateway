@@ -1,0 +1,44 @@
+name: PlatformIO CI/CD Pipeline
+
+on:
+  push:
+    branches: ["main", "feature/*"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout del Repositorio
+        uses: actions/checkout@v4
+
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: ⚡ Caché de Dependencias (PlatformIO)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+            firmware/.pio
+          key: ${{ runner.os }}-pio-${{ hashFiles('firmware/platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
+
+      - name: 🛠️ Instalar PlatformIO Core
+        run: pip install -U platformio
+
+      - name: ⚙️ Compilar Firmware (ESP32)
+        run: pio run -d firmware
+
+      - name: 📦 Exportar Binario Generado
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp32-firmware-bin
+          path: firmware/.pio/build/*/firmware.bin
+          if-no-files-found: error
