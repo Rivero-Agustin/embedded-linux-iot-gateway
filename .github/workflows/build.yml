@@ -7,6 +7,9 @@ on:
     branches: ["main"]
 
 jobs:
+  # ---------------------------------------------------
+  # ETAPA 1: NUBE (Lógica Pura y Compilación)
+  # ---------------------------------------------------
   build:
     runs-on: ubuntu-latest
 
@@ -58,3 +61,32 @@ jobs:
           name: esp32-firmware-bin
           path: firmware/.pio/build/*/firmware.bin
           if-no-files-found: error
+  # ---------------------------------------------------
+  # ETAPA 2: HARDWARE-IN-THE-LOOP (Tu Computadora)
+  # ---------------------------------------------------
+  hardware_test:
+    needs: build # Solo se ejecuta si la Etapa 1 salió perfecta
+    runs-on: self-hosted
+
+    steps:
+      - name: 📥 Checkout del Repositorio
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Instalar PlatformIO en el Runner
+        run: pip3 install -U platformio || pip install -U platformio
+
+      - name: 🔐 Generar config.h para el hardware
+        run: |
+          mkdir -p firmware/include
+          cat <<EOF > firmware/include/config.h
+          #pragma once
+          #define WIFI_SSID "ci_dummy_wifi"
+          #define WIFI_PASS "ci_dummy_pass"
+          #define IS_ANCHOR true
+          #define MQTT_BROKER_URI "mqtt://192.168.1.100:1883"
+          #define MQTT_TOPIC_TELEMETRY "dummy/telemetry"
+          #define MQTT_TOPIC_COMMANDS  "dummy/commands"
+          EOF
+
+      - name: 🔌 Flashear y Testear en Placa Física
+        run: pio test -d firmware -e esp-wrover-kit
