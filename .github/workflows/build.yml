@@ -50,7 +50,7 @@ jobs:
         run: pio test -d firmware -e native
 
       - name: ⚙️ Compilar Firmware (ESP32)
-        run: pio run -d firmware
+        run: pio run -d firmware -e esp-wrover-kit
 
       - name: 📦 Exportar Binario Generado
         uses: actions/upload-artifact@v4
