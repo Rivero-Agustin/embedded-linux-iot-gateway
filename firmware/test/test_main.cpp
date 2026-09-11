@@ -15,25 +15,18 @@ void test_algoritmo_colision(void) {
 // MAGIA MULTI-ENTORNO (Cloud vs Hardware)
 // ==========================================
 
-#if defined(ARDUINO)
-// ---> Si estamos flasheando el ESP32 (Hardware-in-the-loop)
+#if defined(ESP_PLATFORM) || defined(ARDUINO)
+// ---> Si estamos flasheando el ESP32 (Hardware-in-the-loop con ESP-IDF / Arduino)
 #include <Arduino.h>
 
-void setup() {
-    // Fundamental: Esperar 2 segundos para que Windows estabilice el puerto USB Serial
-    delay(2000); 
-    UNITY_BEGIN();
-    RUN_TEST(test_algoritmo_colision);
-    UNITY_END();
-}
-
-void loop() {
-    delay(100); // El test ya corrió, el loop se queda descansando
-}
-
-#elif defined(ESP_PLATFORM)
-// ---> Si estamos flasheando un ESP32 pero con ESP-IDF puro
 extern "C" void app_main() {
+    #if defined(ARDUINO)
+    initArduino();
+    #endif
+    
+    // Esperar 2 segundos para que el puerto Serial se estabilice tras el reinicio
+    vTaskDelay(2000 / portTICK_PERIOD_MS); 
+
     UNITY_BEGIN();
     RUN_TEST(test_algoritmo_colision);
     UNITY_END();
