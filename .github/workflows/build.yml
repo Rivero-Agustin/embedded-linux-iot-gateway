@@ -62,11 +62,12 @@ jobs:
           path: firmware/.pio/build/*/firmware.bin
           if-no-files-found: error
   # ---------------------------------------------------
-  # ETAPA 2: HARDWARE-IN-THE-LOOP (Tu Computadora)
+  # ETAPA 2: HARDWARE-IN-THE-LOOP & DESPLIEGUE (Tu Runner)
   # ---------------------------------------------------
   hardware_test:
-    needs: build # Solo se ejecuta si la Etapa 1 salió perfecta
+    needs: build # Solo corre si la compilación en la nube pasó
     runs-on: self-hosted
+    environment: production
 
     steps:
       - name: 📥 Checkout del Repositorio
@@ -75,7 +76,8 @@ jobs:
       - name: 🛠️ Instalar PlatformIO en el Runner
         run: pip3 install -U platformio --break-system-packages || pip install -U platformio --break-system-packages
 
-      - name: 🔐 Generar config.h para el hardware
+      # --- 1. PRUEBAS EN HARDWARE (Con config de test) ---
+      - name: 🔐 Generar config.h para Pruebas
         run: |
           mkdir -p firmware/include
           cat <<EOF > firmware/include/config.h
@@ -88,8 +90,27 @@ jobs:
           #define MQTT_TOPIC_COMMANDS  "dummy/commands"
           EOF
 
-      - name: 🔌 Flashear y Testear en Placa Física (Unity)
+      - name: 🧪 Ejecutar Tests en Placa Física (Unity)
         run: ~/.local/bin/pio test -d firmware -e esp-wrover-kit
 
-      - name: 🚀 DESPLIEGUE Flashear Proyecto Completo (Main)
+      # --- 2. DESPLIEGUE REAL (Solo en rama 'main' si los tests pasaron) ---
+      - name: 🔐 Inyectar Credenciales Reales de Producción
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          PROD_WIFI_SSID: ${{ secrets.WIFI_SSID }}
+          PROD_WIFI_PASS: ${{ secrets.WIFI_PASS }}
+          PROD_MQTT_URI: ${{ secrets.MQTT_BROKER_URI }}
+        run: |
+          cat <<EOF > firmware/include/config.h
+          #pragma once
+          #define WIFI_SSID "$PROD_WIFI_SSID"
+          #define WIFI_PASS "$PROD_WIFI_PASS"
+          #define IS_ANCHOR true
+          #define MQTT_BROKER_URI "$PROD_MQTT_URI"
+          #define MQTT_TOPIC_TELEMETRY "gateway/uwb/telemetry"
+          #define MQTT_TOPIC_COMMANDS  "gateway/uwb/commands"
+          EOF
+
+      - name: 🚀 Flashear Firmware de Producción al ESP32
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: ~/.local/bin/pio run -d firmware -e esp-wrover-kit --target upload
