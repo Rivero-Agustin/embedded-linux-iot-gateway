@@ -88,5 +88,8 @@ jobs:
           #define MQTT_TOPIC_COMMANDS  "dummy/commands"
           EOF
 
-      - name: 🔌 Flashear y Testear en Placa Física
+      - name: 🔌 Flashear y Testear en Placa Física (Unity)
         run: ~/.local/bin/pio test -d firmware -e esp-wrover-kit
+
+      - name: 🚀 DESPLIEGUE Flashear Proyecto Completo (Main)
+        run: ~/.local/bin/pio run -d firmware -e esp-wrover-kit --target upload
