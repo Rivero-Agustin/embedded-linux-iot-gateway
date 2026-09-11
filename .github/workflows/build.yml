@@ -73,7 +73,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🛠️ Instalar PlatformIO en el Runner
-        run: pip3 install -U platformio || pip install -U platformio
+        run: pip3 install -U platformio --break-system-packages || pip install -U platformio --break-system-packages
 
       - name: 🔐 Generar config.h para el hardware
         run: |
