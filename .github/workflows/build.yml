@@ -3,8 +3,16 @@ name: PlatformIO CI/CD Pipeline
 on:
   push:
     branches: ["main", "feature/*"]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".gitignore"
   pull_request:
     branches: ["main"]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".gitignore"
 
 jobs:
   # ---------------------------------------------------
