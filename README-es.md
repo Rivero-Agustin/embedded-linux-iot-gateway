@@ -18,12 +18,21 @@ Sistema integral de **Prevención de Colisiones y Gateway IoT Edge** basado en u
 
 ## 🌟 Resumen Ejecutivo
 
-En entornos industriales de alta criticidad (plantas logísticas, fábricas, minería), las colisiones entre maquinaria pesada y operarios representan un riesgo constante. Este proyecto implementa una arquitectura distribuida y resiliente diseñada para:
+> 🎯 **Visión General:** Diseñado para entornos industriales de alto riesgo (plantas logísticas, fábricas, minería), este proyecto implementa una arquitectura Edge-to-Cloud que mide distancias físicas vía UWB con precisión decimétrica, ejecuta filtrado de ruido y detección de peligro localmente sobre un Gateway Linux Embebido a medida (>80% reducción de tráfico a la nube), transmite telemetría cifrada a AWS IoT Core y valida automáticamente el firmware sobre hardware físico mediante un pipeline de CI/CD HIL.
 
-1. **Medir distancias físicas con precisión decimétrica** mediante transceptores UWB (DecaWave DW1000) en tiempo real estricto.
-2. **Ejecutar Inteligencia en el Edge** sobre un sistema Linux embebido personalizado, filtrando ruido de sensor y detectando peligros sostenidos localmente sin depender de la latencia de la nube.
-3. **Comunicar eventos críticos de forma segura a AWS IoT Core** mediante MQTTS con TLS 1.2 y autenticación mutua por certificados X.509.
-4. **Garantizar la confiabilidad del firmware** a través de pruebas unitarias nativas en x86 y validación automatizada en hardware físico (**Hardware-In-The-Loop**).
+---
+
+## 🏗️ Arquitectura del Sistema y Flujo de Datos
+
+![Diagrama de Arquitectura del Sistema](./docs/architecture.diagram.png)
+
+### 📡 Matriz de Comunicación MQTT
+
+| Tópico                  | Origen ➔ Destino        | Transporte / Seguridad       | Estructura de Carga / Propósito                                                 |
+| :---------------------- | :---------------------- | :--------------------------- | :------------------------------------------------------------------------------ |
+| `gateway/uwb/telemetry` | ESP32 ➔ Linux Gateway   | MQTT (TCP:1883 / Local)      | `{"distance_m": 1.45, "role": "ANCHOR"}` — Telemetría de proximidad local.      |
+| `gateway/uwb/alerts`    | Gateway ➔ AWS IoT Core  | MQTTS (TLS 1.2:8883 / Cloud) | `{"alerta": "PELIGRO_SOSTENIDO", "distancia": 1.45}` — Carga de evento crítico. |
+| `gateway/uwb/commands`  | Cloud / Gateway ➔ ESP32 | MQTT (TCP:1883 / Local)      | Calibración remota y actualización de umbrales.                                 |
 
 ---
 
@@ -47,31 +56,22 @@ Las tareas del microcontrolador están desacopladas y ancladas a núcleos físic
 - La red de sensores local opera en una subred aislada (MQTT puerto 1883).
 - El Gateway actúa como frontera de seguridad criptográfica, encapsulando las alertas hacia AWS IoT Core a través de **MQTTS / TLS v1.2 (Puerto 8883)** utilizando certificados de dispositivo X.509 y claves privadas.
 
-### 4. 🔄 Automatización CI/CD y Hardware-in-the-Loop (HIL)
-
-- Pipeline automatizado en **GitHub Actions**:
-  - **Etapa 1 (Nube / GitHub Runner Ubuntu):** Caché de dependencias, compilación de lógica pura para x86, ejecución de pruebas unitarias con **Unity Framework**, compilación cruzada para Xtensa (ESP32) y exportación del binario.
-  - **Etapa 2 (Runner Local / HIL):** Ejecución de pruebas unitarias directamente sobre la **placa física ESP32** vía puerto serie; ante un `push` a la rama `main`, despliegue continuo (CD) flasheando el firmware de producción con credenciales seguras inyectadas.
-
 ---
 
-## 🏗️ Arquitectura del Sistema y Flujo de Datos
+## 🧪 Pipeline de CI/CD y Hardware-in-the-Loop (HIL)
 
-![Diagrama de Arquitectura del Sistema](./docs/architecture.diagram.png)
+![Diagrama del Pipeline CI/CD & HIL](./docs/pipeline.cicd.png)
 
-### 📡 Matriz de Comunicación MQTT
+Flujo automatizado en dos etapas mediante **GitHub Actions**:
 
-| Tópico                  | Origen ➔ Destino        | Transporte / Seguridad       | Estructura de Carga / Propósito                                                 |
-| :---------------------- | :---------------------- | :--------------------------- | :------------------------------------------------------------------------------ |
-| `gateway/uwb/telemetry` | ESP32 ➔ Linux Gateway   | MQTT (TCP:1883 / Local)      | `{"distance_m": 1.45, "role": "ANCHOR"}` — Telemetría de proximidad local.      |
-| `gateway/uwb/alerts`    | Gateway ➔ AWS IoT Core  | MQTTS (TLS 1.2:8883 / Cloud) | `{"alerta": "PELIGRO_SOSTENIDO", "distancia": 1.45}` — Carga de evento crítico. |
-| `gateway/uwb/commands`  | Cloud / Gateway ➔ ESP32 | MQTT (TCP:1883 / Local)      | Calibración remota y actualización de umbrales.                                 |
+- **Etapa 1 (Nube / GitHub Runner Ubuntu):** Caché de dependencias, compilación de lógica pura para x86, ejecución de pruebas unitarias con **Unity Framework**, compilación cruzada para Xtensa (ESP32) y exportación del binario.
+- **Etapa 2 (Runner Local / HIL):** Ejecución de pruebas unitarias directamente sobre la **placa física ESP32** vía puerto serie; ante un `push` a la rama `main`, despliegue continuo (CD) flasheando el firmware de producción con credenciales seguras inyectadas.
 
 ---
 
 ## 🧠 Lógica de Detección de Anomalías y Reglas en el Edge
 
-El Gateway mantiene una cola FIFO acotada ($N=5$) para evaluar condiciones espacio-temporales:
+El Gateway mantiene una cola FIFO acotada ($N=5$) para evaluar condiciones espacio-temporales localmente:
 
 ```mermaid
 flowchart TD
@@ -85,12 +85,6 @@ flowchart TD
 
 1. **Peligro Sostenido (`PELIGRO_SOSTENIDO`):** Se dispara cuando la distancia es $< 2.0\,\text{m}$ durante 3 lecturas consecutivas, descartando falsos positivos transitorios.
 2. **Salto Brusco / Anomalía (`SALTO_BRUSCO`):** Se dispara si la variación entre dos lecturas inmediatas $|\Delta d| > 5.0\,\text{m}$, filtrando rebotes multitrayectoria o fallas temporales de línea de vista (NLOS).
-
----
-
-## 🧪 Pipeline de CI/CD y Hardware-in-the-Loop (HIL)
-
-![Diagrama del Pipeline CI/CD & HIL](./docs/pipeline.cicd.png)
 
 ---
 

@@ -18,12 +18,21 @@ An end-to-end **Industrial IoT Collision Avoidance & Edge Gateway** featuring a 
 
 ## 🌟 Executive Summary
 
-In modern industrial environments (warehouses, factories, construction sites), worker-to-vehicle and vehicle-to-vehicle collisions present significant hazards. This project delivers an ultra-low-latency, resilient Edge-to-Cloud architecture designed to:
+> 🎯 **Overview:** Designed for high-risk industrial environments (warehouses, factories, logistics), this project provides a resilient Edge-to-Cloud safety architecture that measures physical distances via UWB with decimetric precision, executes local anomaly and collision hazard filtering on a custom Embedded Linux gateway (>80% cloud traffic reduction), bridges encrypted telemetry to AWS IoT Core, and validates firmware automatically on physical hardware via a custom CI/CD HIL pipeline.
 
-1. **Measure real-time distances with decimetric precision** using UWB (DecaWave DW1000) transceivers.
-2. **Execute Edge Intelligence locally** on a custom lightweight Embedded Linux gateway, filtering noise, catching glitches, and detecting sustained collision hazards without cloud latency dependency.
-3. **Bridge telemetry securely to AWS IoT Core** over TLS 1.2 with mutual X.509 certificate authentication.
-4. **Ensure continuous reliability** through automated unit testing, native x86 simulation, and **Hardware-In-The-Loop (HIL)** firmware validation on physical boards.
+---
+
+## 🏗️ System Architecture & Data Flow
+
+![System Architecture Diagram](./docs/architecture.diagram.png)
+
+### 📡 MQTT Communication Matrix
+
+| Topic                   | Publisher ➔ Subscriber  | Transport / Security         | Payload Structure / Purpose                                                    |
+| :---------------------- | :---------------------- | :--------------------------- | :----------------------------------------------------------------------------- |
+| `gateway/uwb/telemetry` | ESP32 ➔ Linux Gateway   | MQTT (TCP:1883 / Local)      | `{"distance_m": 1.45, "role": "ANCHOR"}` — Raw proximity data.                 |
+| `gateway/uwb/alerts`    | Gateway ➔ AWS IoT Core  | MQTTS (TLS 1.2:8883 / Cloud) | `{"alerta": "PELIGRO_SOSTENIDO", "distancia": 1.45}` — Critical event payload. |
+| `gateway/uwb/commands`  | Cloud / Gateway ➔ ESP32 | MQTT (TCP:1883 / Local)      | Remote calibration & runtime threshold parameter updates.                      |
 
 ---
 
@@ -47,31 +56,22 @@ Microcontroller tasks are strategically segregated across physical CPU cores to 
 - Local edge nodes communicate over an isolated local network (MQTT port 1883).
 - The Linux Edge Gateway acts as a secure cryptographic boundary, encrypting outbound alert payloads with **TLS v1.2 / MQTTS (Port 8883)** using X.509 device certificates and private keys generated in AWS IoT Core.
 
-### 4. 🔄 CI/CD & Hardware-in-the-Loop (HIL) Automation
-
-- Fully automated workflow via **GitHub Actions**:
-  - **Stage 1 (Cloud / Ubuntu Runner):** Dependency caching, Native x86 compilation of pure logic, execution of unit tests with **Unity Framework**, cross-compilation for ESP32 Xtensa architecture, and firmware binary artifact publishing.
-  - **Stage 2 (Self-Hosted Runner / HIL):** Automated test suite execution on **real physical ESP32 hardware** over serial; on merge to `main`, continuous deployment automatically flashes production firmware with injected secrets.
-
 ---
 
-## 🏗️ System Architecture & Data Flow
+## 🧪 CI/CD & Hardware-in-the-Loop (HIL) Pipeline
 
-![System Architecture Diagram](./docs/architecture.diagram.png)
+![CI/CD & HIL Pipeline Diagram](./docs/pipeline.cicd.png)
 
-### 📡 MQTT Communication Matrix
+Fully automated two-stage workflow via **GitHub Actions**:
 
-| Topic                   | Publisher ➔ Subscriber  | Transport / Security         | Payload Structure / Purpose                                                    |
-| :---------------------- | :---------------------- | :--------------------------- | :----------------------------------------------------------------------------- |
-| `gateway/uwb/telemetry` | ESP32 ➔ Linux Gateway   | MQTT (TCP:1883 / Local)      | `{"distance_m": 1.45, "role": "ANCHOR"}` — Raw proximity data.                 |
-| `gateway/uwb/alerts`    | Gateway ➔ AWS IoT Core  | MQTTS (TLS 1.2:8883 / Cloud) | `{"alerta": "PELIGRO_SOSTENIDO", "distancia": 1.45}` — Critical event payload. |
-| `gateway/uwb/commands`  | Cloud / Gateway ➔ ESP32 | MQTT (TCP:1883 / Local)      | Remote calibration & runtime threshold parameter updates.                      |
+- **Stage 1 (Cloud / Ubuntu Runner):** Dependency caching, Native x86 compilation of pure logic, execution of unit tests with **Unity Framework**, cross-compilation for ESP32 Xtensa architecture, and firmware binary artifact publishing.
+- **Stage 2 (Self-Hosted Runner / HIL):** Automated test suite execution on **real physical ESP32 hardware** over serial; on merge to `main`, continuous deployment automatically flashes production firmware with injected secrets.
 
 ---
 
 ## 🧠 Edge Computing & Anomaly Detection Logic
 
-The Edge Gateway maintains a bounded FIFO queue ($N=5$) to evaluate spatial-temporal safety criteria:
+The Edge Gateway maintains a bounded FIFO queue ($N=5$) to evaluate spatial-temporal safety criteria locally:
 
 ```mermaid
 flowchart TD
@@ -80,17 +80,11 @@ flowchart TD
     C -- Yes --> D["🚨 Publish Alert: PELIGRO_SOSTENIDO ➔ AWS"]
     C -- No --> E{"|Sample[i] - Sample[i-1]| > 5.0m\n(Glitch / Jump)?"}
     E -- Yes --> F["⚠️ Publish Anomaly: SALTO_BRUSCO ➔ AWS"]
-    E -- No --> G["Normal Operation (Drop local payload / No Cloud Cost)"]
+    E -- No --> G["Normal Operation (Drop local payload / Zero Cloud Cost)"]
 ```
 
 1. **Sustained Danger (`PELIGRO_SOSTENIDO`):** Triggered when distance $< 2.0\,\text{m}$ for 3 consecutive samples, discarding transient false positives.
 2. **Sensor Glitch / Abrupt Jump (`SALTO_BRUSCO`):** Triggered when consecutive delta $|\Delta d| > 5.0\,\text{m}$, filtering out multipath interference or NLOS (Non-Line-of-Sight) reflection spikes.
-
----
-
-## 🧪 CI/CD & Hardware-in-the-Loop (HIL) Pipeline
-
-![CI/CD & HIL Pipeline Diagram](./docs/pipeline.cicd.png)
 
 ---
 
