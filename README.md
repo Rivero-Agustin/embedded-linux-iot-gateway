@@ -57,29 +57,7 @@ Microcontroller tasks are strategically segregated across physical CPU cores to 
 
 ## 🏗️ System Architecture & Data Flow
 
-```mermaid
-flowchart LR
-    subgraph Perception ["📡 Perception Layer (Hardware)"]
-        Tag["ESP32 Tag (UWB Mobile)"]
-        Anchor["ESP32 Anchor (UWB Fixed)"]
-        Tag <-->|UWB Pulses / ToF| Anchor
-    end
-
-    subgraph Edge ["🐧 Edge Computing Layer (Buildroot / QEMU)"]
-        Broker["Local Mosquitto Broker\n(Port 1883)"]
-        EdgeEngine["Python Edge Engine\n- Sliding Window (N=5)\n- Noise Filter (>5m)\n- Hazard Trigger (<2m)"]
-        Broker -->|gateway/uwb/telemetry| EdgeEngine
-    end
-
-    subgraph Cloud ["☁️ Cloud Layer (AWS IoT Core)"]
-        AWS["AWS IoT Core Engine\n(MQTTS / Port 8883)"]
-        AlertsTopic["Topic: gateway/uwb/alerts\n(Alarms & Anomaly Logs)"]
-        AWS --> AlertsTopic
-    end
-
-    Anchor -->|Wi-Fi / JSON MQTT| Broker
-    EdgeEngine -->|TLS 1.2 / X.509 Auth| AWS
-```
+![System Architecture Diagram](./docs/architecture.diagram.png)
 
 ### 📡 MQTT Communication Matrix
 
@@ -112,27 +90,7 @@ flowchart TD
 
 ## 🧪 CI/CD & Hardware-in-the-Loop (HIL) Pipeline
 
-```mermaid
-flowchart TD
-    subgraph Stage1 ["Stage 1: Cloud CI (GitHub-Hosted Ubuntu)"]
-        A1["git push / PR"] --> A2["Setup Python 3.11 & PlatformIO Core"]
-        A2 --> A3["Cache Dependencies (.pio & pip)"]
-        A3 --> A4["Inject Test Configuration (config.h)"]
-        A4 --> A5["🧪 Run Native x86 Unit Tests (Unity)"]
-        A5 --> A6["⚙️ Cross-Compile Firmware (ESP32 WROVER)"]
-        A6 --> A7["📦 Upload Firmware Binary Artifact"]
-    end
-
-    subgraph Stage2 ["Stage 2: HIL Testing & Deployment (Self-Hosted Runner)"]
-        B1["Download Artifact & Trigger Runner"] --> B2["🧪 Flash & Run On-Target Unity Tests (Serial)"]
-        B2 --> B3{"Branch == 'main'?"}
-        B3 -- Yes --> B4["🔐 Inject Production Secrets (Wi-Fi, AWS IP)"]
-        B4 --> B5["🚀 Auto-Flash Production Firmware to ESP32"]
-        B3 -- No --> B6["Complete PR Validation"]
-    end
-
-    A7 --> B1
-```
+![CI/CD & HIL Pipeline Diagram](./docs/pipeline.cicd.png)
 
 ---
 
@@ -144,7 +102,8 @@ embedded-linux-iot-gateway/
 │   └── workflows/
 │       └── build.yml               # GitHub Actions CI/CD (Native tests + HIL Runner + CD)
 ├── docs/
-│   └── architecture.diagram.png    # High-resolution system architecture diagram
+│   ├── architecture.diagram.png    # High-resolution system architecture diagram
+│   └── pipeline.cicd.png           # Hardware-in-the-Loop CI/CD pipeline diagram
 ├── firmware/                       # ESP32 C++ / FreeRTOS / ESP-IDF Source
 │   ├── include/
 │   │   ├── config.example.h        # Configuration template (Credentials & Broker URI)

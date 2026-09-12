@@ -57,29 +57,7 @@ Las tareas del microcontrolador están desacopladas y ancladas a núcleos físic
 
 ## 🏗️ Arquitectura del Sistema y Flujo de Datos
 
-```mermaid
-flowchart LR
-    subgraph Percepcion ["📡 Capa de Percepción (Hardware)"]
-        Tag["ESP32 Tag (Móvil UWB)"]
-        Anchor["ESP32 Anchor (Fijo UWB)"]
-        Tag <-->|Pulsos UWB / ToF| Anchor
-    end
-
-    subgraph Edge ["🐧 Capa Edge Computing (Buildroot / QEMU)"]
-        Broker["Broker Mosquitto Local\n(Puerto 1883)"]
-        EdgeEngine["Motor Edge en Python\n- Ventana Deslizante (N=5)\n- Filtro Ruido (>5m)\n- Disparo Peligro (<2m)"]
-        Broker -->|gateway/uwb/telemetry| EdgeEngine
-    end
-
-    subgraph Cloud ["☁️ Capa Cloud (AWS IoT Core)"]
-        AWS["AWS IoT Core Engine\n(MQTTS / Puerto 8883)"]
-        AlertsTopic["Tópico: gateway/uwb/alerts\n(Alarmas y Registro)"]
-        AWS --> AlertsTopic
-    end
-
-    Anchor -->|Wi-Fi / JSON MQTT| Broker
-    EdgeEngine -->|TLS 1.2 / Certificados X.509| AWS
-```
+![Diagrama de Arquitectura del Sistema](./docs/architecture.diagram.png)
 
 ### 📡 Matriz de Comunicación MQTT
 
@@ -112,27 +90,7 @@ flowchart TD
 
 ## 🧪 Pipeline de CI/CD y Hardware-in-the-Loop (HIL)
 
-```mermaid
-flowchart TD
-    subgraph Etapa1 ["Etapa 1: CI en la Nube (GitHub-Hosted Ubuntu)"]
-        A1["git push / PR"] --> A2["Configurar Python 3.11 y PlatformIO Core"]
-        A2 --> A3["Caché de Dependencias (.pio y pip)"]
-        A3 --> A4["Generar config.h de Prueba"]
-        A4 --> A5["🧪 Pruebas Unitarias Nativas x86 (Unity)"]
-        A5 --> A6["⚙️ Compilación Cruzada Firmware (ESP32 WROVER)"]
-        A6 --> A7["📦 Exportar Artefacto Binario (.bin)"]
-    end
-
-    subgraph Etapa2 ["Etapa 2: Pruebas HIL y Despliegue (Runner Físico Local)"]
-        B1["Descarga de Artefacto y Disparo de Runner"] --> B2["🧪 Ejecución de Tests Unity en Placa Física"]
-        B2 --> B3{"¿Rama == 'main'?"}
-        B3 -- Sí --> B4["🔐 Inyección de Secretos (Wi-Fi, AWS IP)"]
-        B4 --> B5["🚀 Auto-Flasheo Firmware de Producción al ESP32"]
-        B3 -- No --> B6["Validación de Pull Request Completada"]
-    end
-
-    A7 --> B1
-```
+![Diagrama del Pipeline CI/CD & HIL](./docs/pipeline.cicd.png)
 
 ---
 
@@ -144,7 +102,8 @@ embedded-linux-iot-gateway/
 │   └── workflows/
 │       └── build.yml               # Pipeline GitHub Actions (Tests x86 + Runner HIL + CD)
 ├── docs/
-│   └── architecture.diagram.png    # Diagrama de arquitectura del sistema en alta resolución
+│   ├── architecture.diagram.png    # Diagrama de arquitectura del sistema en alta resolución
+│   └── pipeline.cicd.png           # Diagrama del pipeline CI/CD con Hardware-in-the-Loop
 ├── firmware/                       # Código fuente C++ / FreeRTOS / ESP-IDF para ESP32
 │   ├── include/
 │   │   ├── config.example.h        # Plantilla de configuración (Credenciales y Broker URI)
