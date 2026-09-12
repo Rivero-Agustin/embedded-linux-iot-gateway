@@ -1,10 +1,10 @@
 <div align="right">
-  🌎 <a href="README.md">English</a> | 🇪🇸 <a href="README-es.md">Español</a>
+  🌎 <a href="README-en.md">English</a> | 🇪🇸 <a href="README.md">Español</a>
 </div>
 
-# Industrial IoT Edge Gateway: Custom Embedded Linux (Buildroot) & Automated HIL CI/CD Pipeline
+# Gateway IoT Edge en Linux Embebido: Buildroot & Pipeline CI/CD con Hardware-in-the-Loop (HIL)
 
-[![PlatformIO CI/CD Pipeline](https://github.com/Rivero-Agustin/embedded-linux-iot-gateway/actions/workflows/build.yml/badge.svg)](https://github.com/Rivero-Agustin/embedded-linux-iot-gateway/actions/workflows/build.yml)
+[![Pipeline CI/CD PlatformIO](https://github.com/Rivero-Agustin/embedded-linux-iot-gateway/actions/workflows/build.yml/badge.svg)](https://github.com/Rivero-Agustin/embedded-linux-iot-gateway/actions/workflows/build.yml)
 ![Embedded Linux](https://img.shields.io/badge/Embedded_Linux-Buildroot%20%7C%20QEMU-FCC624?style=for-the-badge&logo=linux&logoColor=black)
 ![HIL Testing](https://img.shields.io/badge/CI%2FCD-Hardware--in--the--Loop-0A66C2?style=for-the-badge&logo=githubactions&logoColor=white)
 ![FreeRTOS](https://img.shields.io/badge/FreeRTOS-Dual--Core%20Task%20Pinning-green?style=for-the-badge&logo=freertos&logoColor=white)
@@ -12,193 +12,193 @@
 ![AWS IoT Core](https://img.shields.io/badge/AWS-IoT_Core_MQTTS-FF9900?style=for-the-badge&logo=amazon-aws&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-Edge_Processing-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
 
-An end-to-end **Industrial IoT Collision Avoidance & Edge Gateway** featuring a custom **Embedded Linux (Buildroot)** OS, real-time edge anomaly detection, FreeRTOS dual-core firmware, and a production-grade **CI/CD pipeline with Automated Hardware-in-the-Loop (HIL) Testing**.
+Sistema integral de **Prevención de Colisiones y Gateway IoT Edge** basado en un sistema operativo **Linux Embebido personalizado (Buildroot)**, procesamiento y detección de anomalías en el Edge, firmware FreeRTOS dual-core y un pipeline de **CI/CD con pruebas automatizadas Hardware-in-the-Loop (HIL)**.
 
 ---
 
-## 🌟 Executive Summary
+## 🌟 Resumen Ejecutivo
 
-> 🎯 **Overview:** Designed for high-risk industrial environments (warehouses, factories, logistics), this project provides a resilient Edge-to-Cloud safety architecture that measures physical distances via UWB with decimetric precision, executes local anomaly and collision hazard filtering on a custom Embedded Linux gateway (>80% cloud traffic reduction), bridges encrypted telemetry to AWS IoT Core, and validates firmware automatically on physical hardware via a custom CI/CD HIL pipeline.
-
----
-
-## 🏗️ System Architecture & Data Flow
-
-![System Architecture Diagram](./docs/architecture.diagram.png)
-
-### 📡 MQTT Communication Matrix
-
-| Topic                   | Publisher ➔ Subscriber  | Transport / Security         | Payload Structure / Purpose                                                    |
-| :---------------------- | :---------------------- | :--------------------------- | :----------------------------------------------------------------------------- |
-| `gateway/uwb/telemetry` | ESP32 ➔ Linux Gateway   | MQTT (TCP:1883 / Local)      | `{"distance_m": 1.45, "role": "ANCHOR"}` — Raw proximity data.                 |
-| `gateway/uwb/alerts`    | Gateway ➔ AWS IoT Core  | MQTTS (TLS 1.2:8883 / Cloud) | `{"alerta": "PELIGRO_SOSTENIDO", "distancia": 1.45}` — Critical event payload. |
-| `gateway/uwb/commands`  | Cloud / Gateway ➔ ESP32 | MQTT (TCP:1883 / Local)      | Remote calibration & runtime threshold parameter updates.                      |
+> 🎯 **Visión General:** Diseñado para entornos industriales de alto riesgo (plantas logísticas, fábricas, minería), este proyecto implementa una arquitectura Edge-to-Cloud que mide distancias físicas vía UWB con precisión decimétrica, ejecuta filtrado de ruido y detección de peligro localmente sobre un Gateway Linux Embebido a medida (>80% reducción de tráfico a la nube), transmite telemetría cifrada a AWS IoT Core y valida automáticamente el firmware sobre hardware físico mediante un pipeline de CI/CD HIL.
 
 ---
 
-## ⚙️ Key Engineering Highlights & Architectural Decisions
+## 🏗️ Arquitectura del Sistema y Flujo de Datos
 
-### 1. ⚡ Asymmetric FreeRTOS Dual-Core Architecture (ESP32)
+![Diagrama de Arquitectura del Sistema](./docs/architecture.diagram.png)
 
-Microcontroller tasks are strategically segregated across physical CPU cores to guarantee hard real-time constraints:
+### 📡 Matriz de Comunicación MQTT
 
-- **Core 1 (High Priority - Level 5):** Executes time-critical UWB Two-Way Ranging (TWR) algorithms operating at nanosecond resolution and drives the I2C SSD1306 OLED display using non-blocking updates (300 ms throttling) to prevent I2C bus saturation.
-- **Core 0 (Standard Priority - Level 2):** Manages the networking stack, including Wi-Fi reconnection state machines and the native ESP-IDF MQTT client (`esp_mqtt_client`) with transmission queues.
-- **PSRAM & Custom Partitioning:** Configured with custom flash partition tables (`partitions.csv`) and PSRAM cache fix flags for high-throughput sensor telemetry.
-
-### 2. 🐧 Custom Embedded Linux Gateway (Buildroot + QEMU)
-
-- **Minimalist OS Footprint:** Built using a customized Buildroot Linux configuration emulated under QEMU, tailored with minimal packages (Python runtime, Mosquitto broker, OpenSSL).
-- **Edge Analytics & Bandwidth Optimization:** A Python edge service processes incoming raw telemetry via a sliding-window buffer ($N=5$). By evaluating safety thresholds locally, cloud payload ingestion is reduced by **>80%**, forwarding only actionable alerts to AWS.
-
-### 3. 🔐 Zero-Trust Cloud Security Model (AWS IoT Core)
-
-- Local edge nodes communicate over an isolated local network (MQTT port 1883).
-- The Linux Edge Gateway acts as a secure cryptographic boundary, encrypting outbound alert payloads with **TLS v1.2 / MQTTS (Port 8883)** using X.509 device certificates and private keys generated in AWS IoT Core.
+| Tópico                  | Origen ➔ Destino        | Transporte / Seguridad       | Estructura de Carga / Propósito                                                 |
+| :---------------------- | :---------------------- | :--------------------------- | :------------------------------------------------------------------------------ |
+| `gateway/uwb/telemetry` | ESP32 ➔ Linux Gateway   | MQTT (TCP:1883 / Local)      | `{"distance_m": 1.45, "role": "ANCHOR"}` — Telemetría de proximidad local.      |
+| `gateway/uwb/alerts`    | Gateway ➔ AWS IoT Core  | MQTTS (TLS 1.2:8883 / Cloud) | `{"alerta": "PELIGRO_SOSTENIDO", "distancia": 1.45}` — Carga de evento crítico. |
+| `gateway/uwb/commands`  | Cloud / Gateway ➔ ESP32 | MQTT (TCP:1883 / Local)      | Calibración remota y actualización de umbrales.                                 |
 
 ---
 
-## 🧪 CI/CD & Hardware-in-the-Loop (HIL) Pipeline
+## ⚙️ Decisiones Clave de Ingeniería y Arquitectura
 
-![CI/CD & HIL Pipeline Diagram](./docs/pipeline.cicd.png)
+### 1. ⚡ Arquitectura FreeRTOS Asimétrica Dual-Core (ESP32)
 
-Fully automated two-stage workflow via **GitHub Actions**:
+Las tareas del microcontrolador están desacopladas y ancladas a núcleos físicos específicos para asegurar tiempos deterministas:
 
-- **Stage 1 (Cloud / Ubuntu Runner):** Dependency caching, Native x86 compilation of pure logic, execution of unit tests with **Unity Framework**, cross-compilation for ESP32 Xtensa architecture, and firmware binary artifact publishing.
-- **Stage 2 (Self-Hosted Runner / HIL):** Automated test suite execution on **real physical ESP32 hardware** over serial; on merge to `main`, continuous deployment automatically flashes production firmware with injected secrets.
+- **Core 1 (Prioridad Alta - Nivel 5):** Dedicado exclusivamente al algoritmo Two-Way Ranging (TWR) del transceptor UWB a resolución de nanosegundos y a la actualización no bloqueante de la pantalla OLED SSD1306 (con limitador de 300 ms para evitar saturar el bus I2C).
+- **Core 0 (Prioridad Estándar - Nivel 2):** Gestiona la máquina de estados de conexión Wi-Fi y el cliente MQTT nativo de ESP-IDF (`esp_mqtt_client`) con colas de mensajes.
+- **Memoria PSRAM y Particiones Personalizadas:** Configuración de `partitions.csv` y flags de compilación para memoria PSRAM externa.
+
+### 2. 🐧 Gateway Edge en Linux Embebido Personalizado (Buildroot + QEMU)
+
+- **Sistema Operativo Minimalista:** Compilado a medida mediante Buildroot y emulado en QEMU, conteniendo exclusivamente los paquetes esenciales (Python 3, Mosquitto broker, OpenSSL).
+- **Filtrado Edge y Reducción de Ancho de Banda:** Un servicio en Python procesa la telemetría cruda mediante un búfer de ventana deslizante ($N=5$). Al evaluar las reglas de peligro en el Edge, se reduce la ingesta de datos en la nube en más de un **80%**, transmitiendo únicamente alertas procesables a AWS.
+
+### 3. 🔐 Modelo de Seguridad y Enlace Seguro con AWS IoT Core
+
+- La red de sensores local opera en una subred aislada (MQTT puerto 1883).
+- El Gateway actúa como frontera de seguridad criptográfica, encapsulando las alertas hacia AWS IoT Core a través de **MQTTS / TLS v1.2 (Puerto 8883)** utilizando certificados de dispositivo X.509 y claves privadas.
 
 ---
 
-## 🧠 Edge Computing & Anomaly Detection Logic
+## 🧪 Pipeline de CI/CD y Hardware-in-the-Loop (HIL)
 
-The Edge Gateway maintains a bounded FIFO queue ($N=5$) to evaluate spatial-temporal safety criteria locally:
+![Diagrama del Pipeline CI/CD & HIL](./docs/pipeline.cicd.png)
+
+Flujo automatizado en dos etapas mediante **GitHub Actions**:
+
+- **Etapa 1 (Nube / GitHub Runner Ubuntu):** Caché de dependencias, compilación de lógica pura para x86, ejecución de pruebas unitarias con **Unity Framework**, compilación cruzada para Xtensa (ESP32) y exportación del binario.
+- **Etapa 2 (Runner Local / HIL):** Ejecución de pruebas unitarias directamente sobre la **placa física ESP32** vía puerto serie; ante un `push` a la rama `main`, despliegue continuo (CD) flasheando el firmware de producción con credenciales seguras inyectadas.
+
+---
+
+## 🧠 Lógica de Detección de Anomalías y Reglas en el Edge
+
+El Gateway mantiene una cola FIFO acotada ($N=5$) para evaluar condiciones espacio-temporales localmente:
 
 ```mermaid
 flowchart TD
-    A["Raw Telemetry Ingestion (distance_m)"] --> B["Append to FIFO Buffer (Max 5 Samples)"]
-    B --> C{"Consecutive Readings < 2.0m\n(Last 3 Samples)?"}
-    C -- Yes --> D["🚨 Publish Alert: PELIGRO_SOSTENIDO ➔ AWS"]
-    C -- No --> E{"|Sample[i] - Sample[i-1]| > 5.0m\n(Glitch / Jump)?"}
-    E -- Yes --> F["⚠️ Publish Anomaly: SALTO_BRUSCO ➔ AWS"]
-    E -- No --> G["Normal Operation (Drop local payload / Zero Cloud Cost)"]
+    A["Recepción de Telemetría (distance_m)"] --> B["Insertar en Búfer FIFO (Máx 5 Muestras)"]
+    B --> C{"¿Últimas 3 lecturas < 2.0m\n(Peligro Continuo)?"}
+    C -- Sí --> D["🚨 Publicar Alerta: PELIGRO_SOSTENIDO ➔ AWS"]
+    C -- No --> E{"¿|Muestra[i] - Muestra[i-1]| > 5.0m\n(Salto / Ruido)?"}
+    E -- Sí --> F["⚠️ Publicar Anomalía: SALTO_BRUSCO ➔ AWS"]
+    E -- No --> G["Operación Normal (Descarte local / Cero costo Cloud)"]
 ```
 
-1. **Sustained Danger (`PELIGRO_SOSTENIDO`):** Triggered when distance $< 2.0\,\text{m}$ for 3 consecutive samples, discarding transient false positives.
-2. **Sensor Glitch / Abrupt Jump (`SALTO_BRUSCO`):** Triggered when consecutive delta $|\Delta d| > 5.0\,\text{m}$, filtering out multipath interference or NLOS (Non-Line-of-Sight) reflection spikes.
+1. **Peligro Sostenido (`PELIGRO_SOSTENIDO`):** Se dispara cuando la distancia es $< 2.0\,\text{m}$ durante 3 lecturas consecutivas, descartando falsos positivos transitorios.
+2. **Salto Brusco / Anomalía (`SALTO_BRUSCO`):** Se dispara si la variación entre dos lecturas inmediatas $|\Delta d| > 5.0\,\text{m}$, filtrando rebotes multitrayectoria o fallas temporales de línea de vista (NLOS).
 
 ---
 
-## 📁 Repository Structure
+## 📁 Estructura del Repositorio
 
 ```plaintext
 embedded-linux-iot-gateway/
 ├── .github/
 │   └── workflows/
-│       └── build.yml               # GitHub Actions CI/CD (Native tests + HIL Runner + CD)
+│       └── build.yml               # Pipeline GitHub Actions (Tests x86 + Runner HIL + CD)
 ├── docs/
-│   ├── architecture.diagram.png    # High-resolution system architecture diagram
-│   └── pipeline.cicd.png           # Hardware-in-the-Loop CI/CD pipeline diagram
-├── firmware/                       # ESP32 C++ / FreeRTOS / ESP-IDF Source
+│   ├── architecture.diagram.png    # Diagrama de arquitectura del sistema en alta resolución
+│   └── pipeline.cicd.png           # Diagrama del pipeline CI/CD con Hardware-in-the-Loop
+├── firmware/                       # Código fuente C++ / FreeRTOS / ESP-IDF para ESP32
 │   ├── include/
-│   │   ├── config.example.h        # Configuration template (Credentials & Broker URI)
-│   │   ├── display_manager.h       # OLED display abstractions
-│   │   ├── mqtt_manager.h          # ESP-IDF native MQTT management
-│   │   ├── nvs_manager.h           # Non-Volatile Storage handlers
-│   │   ├── telemetry_manager.h     # JSON payload serialization (cJSON)
-│   │   ├── uwb_engine.h            # DW1000 UWB driver & ranging state machine
-│   │   └── wifi_manager.h          # Wi-Fi station mode & auto-reconnect routines
+│   │   ├── config.example.h        # Plantilla de configuración (Credenciales y Broker URI)
+│   │   ├── display_manager.h       # Módulo de control de pantalla OLED
+│   │   ├── mqtt_manager.h          # Gestión del cliente MQTT nativo ESP-IDF
+│   │   ├── nvs_manager.h           # Manejo de memoria no volátil (NVS)
+│   │   ├── telemetry_manager.h     # Serialización de telemetría JSON (cJSON)
+│   │   ├── uwb_engine.h            # Driver DW1000 y máquina de estados UWB
+│   │   └── wifi_manager.h          # Conectividad Wi-Fi y reconexión automática
 │   ├── src/
-│   │   ├── main.cpp                # Core pinning, dual FreeRTOS tasks & entrypoint
-│   │   └── *.cpp                   # Module implementations
+│   │   ├── main.cpp                # Asignación de tareas a núcleos y punto de entrada
+│   │   └── *.cpp                   # Implementación de módulos
 │   ├── test/
-│   │   └── test_main.cpp           # Unity test suite (Multi-target: Native x86 & ESP32)
-│   ├── partitions.csv              # Custom flash partition scheme
-│   └── platformio.ini              # Multi-environment PlatformIO configuration
+│   │   └── test_main.cpp           # Suite de tests Unity (Dual: Nativo x86 y ESP32)
+│   ├── partitions.csv              # Tabla de particiones de memoria Flash
+│   └── platformio.ini              # Configuración multi-entorno PlatformIO
 ├── gateway/
-│   └── gateway.py                  # Buildroot Edge Bridge (Local MQTT + TLS AWS Uplink)
-├── README.md                       # English documentation
+│   └── gateway.py                  # Puente Edge en Buildroot (MQTT Local + TLS AWS)
+├── README.md                       # Documentación en inglés
 └── README-es.md                    # Documentación en español
 ```
 
 ---
 
-## 🚀 Quickstart & Local Reproduction Guide
+## 🚀 Guía de Puesta en Marcha y Despliegue Local
 
-### Prerequisites
+### Requisitos Previos
 
-- **Hardware:** ESP32 development board (e.g., ESP32-WROVER-KIT) with DecaWave DWM1000 / UWB transceiver and SSD1306 I2C OLED display.
-- **Software:** VS Code with [PlatformIO IDE](https://platformio.org/), Python 3.10+, WSL2 (Ubuntu), and QEMU.
+- **Hardware:** Placa de desarrollo ESP32 (ej. ESP32-WROVER-KIT) con módulo UWB DecaWave DW1000 y pantalla OLED SSD1306 (I2C).
+- **Software:** VS Code con extensión [PlatformIO IDE](https://platformio.org/), Python 3.10+, WSL2 (Ubuntu) y QEMU.
 
-### 1. Network Routing & Tunneling (WSL2 / Windows Host)
+### 1. Configuración de Red y Túnel (WSL2 / Windows Host)
 
-When running QEMU inside WSL2, create a port proxy tunnel to allow the physical ESP32 to reach the emulated broker:
+Al ejecutar QEMU dentro de WSL2, se debe crear un túnel de reenvío de puertos para permitir la comunicación del ESP32 físico con el broker emulado:
 
 ```powershell
-# 1. Retrieve WSL IP (PowerShell as Administrator)
+# 1. Obtener la IP dinámica de WSL (PowerShell como Administrador)
 wsl -e hostname -i
 
-# 2. Create the portproxy tunnel (replace <WSL_IP> with the obtained IP)
-netsh interface portproxy add v4tov4 listenport=1883 listenaddress=0.0.0.0 connectport=1883 connectaddress=<WSL_IP>
+# 2. Crear el túnel portproxy (reemplazar <IP_WSL> por la obtenida)
+netsh interface portproxy add v4tov4 listenport=1883 listenaddress=0.0.0.0 connectport=1883 connectaddress=<IP_WSL>
 ```
 
-Add an inbound firewall rule for TCP port 1883 (Private & Domain profiles only).
+Añadir una regla de entrada en el Firewall de Windows para el puerto TCP 1883 (marcando únicamente perfiles Privado y Dominio).
 
-### 2. Launch the Edge Gateway (QEMU / Buildroot)
+### 2. Iniciar el Gateway Edge (QEMU / Buildroot)
 
-Inside your WSL2 terminal, boot the Buildroot Linux image forwarding port 1883 (`hostfwd=tcp:0.0.0.0:1883-:1883`). Inside the emulated terminal:
+Dentro de la terminal de WSL2, arrancar la imagen Buildroot Linux con el reenvío de puerto activo (`hostfwd=tcp:0.0.0.0:1883-:1883`). En la consola emulada:
 
 ```bash
-# Start the local Mosquitto MQTT broker
+# Iniciar broker MQTT local en segundo plano
 mosquitto -d
 
-# Start the AWS Bridge & Anomaly Processing engine
+# Ejecutar el motor de procesamiento Edge y puente a AWS
 python3 gateway.py
 ```
 
-### 3. Configure & Flash ESP32 Firmware
+### 3. Configuración y Flasheo del Firmware ESP32
 
 ```bash
-# Navigate to firmware directory
+# Entrar al directorio del firmware
 cd firmware
 
-# Create local config from template
+# Copiar la plantilla de configuración
 cp include/config.example.h include/config.h
 ```
 
-Edit `include/config.h` with your local Wi-Fi credentials and the IP address of your Windows/Gateway host:
+Editar `include/config.h` con las credenciales Wi-Fi locales y la dirección IP del host Windows/Gateway:
 
 ```c
-#define WIFI_SSID "YOUR_WIFI_SSID"
-#define WIFI_PASS "YOUR_WIFI_PASSWORD"
+#define WIFI_SSID "TU_RED_WIFI"
+#define WIFI_PASS "TU_CONTRASEÑA"
 #define MQTT_BROKER_URI "mqtt://192.168.1.X:1883"
 ```
 
-Compile and upload the firmware:
+Compilar y flashear el firmware:
 
 ```bash
-# Run native logic unit tests on host
+# Ejecutar tests unitarios nativos en host x86
 pio test -e native
 
-# Compile and flash to ESP32 board
+# Compilar y flashear al ESP32 físico
 pio run -e esp-wrover-kit --target upload
 ```
 
 > [!WARNING]
-> **Security Note:** AWS IoT Core credentials (`root-ca.pem`, `cert.pem.crt`, `private.pem.key`) are not included in this repository. Place them under `/root/certs` in your Linux/QEMU environment.
+> **Nota de Seguridad:** Los certificados de AWS IoT Core (`root-ca.pem`, `cert.pem.crt`, `private.pem.key`) no están incluidos en el repositorio. Deben colocarse en `/root/certs` dentro del entorno Linux / QEMU.
 
 ---
 
-## �️ Tech Stack & Tools
+## 🛠️ Stack Tecnológico y Herramientas
 
 - **Firmware:** C/C++, FreeRTOS, ESP-IDF Framework, PlatformIO, Unity Test Framework.
-- **Transceivers & Sensors:** DecaWave DW1000 (Ultra-Wideband), SSD1306 (I2C OLED).
-- **Edge Computing & OS:** Embedded Linux, Buildroot, QEMU Emulation, Python 3, Paho-MQTT, Mosquitto.
-- **Cloud & Protocols:** AWS IoT Core, MQTT, MQTTS (TLS 1.2), X.509 Certificates.
-- **DevOps & CI/CD:** GitHub Actions, Self-Hosted Runners (Hardware-in-the-Loop).
+- **Transceptores y Sensores:** DecaWave DW1000 (Ultra-Wideband), SSD1306 (OLED I2C).
+- **Edge Computing y SO:** Linux Embebido, Buildroot, Emulación QEMU, Python 3, Paho-MQTT, Mosquitto.
+- **Cloud y Protocolos:** AWS IoT Core, MQTT, MQTTS (TLS 1.2), Certificados X.509.
+- **DevOps y CI/CD:** GitHub Actions, Self-Hosted Runners (Hardware-in-the-Loop).
 
 ---
 
-## 👨‍💻 Author
+## 👨‍💻 Autor
 
 **Agustín Rivero**
 
