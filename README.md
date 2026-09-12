@@ -203,4 +203,4 @@ pio run -e esp-wrover-kit --target upload
 **Agustín Rivero**
 
 - GitHub: [@Rivero-Agustin](https://github.com/Rivero-Agustin)
-- LinkedIn: [Agustín Rivero](https://www.linkedin.com/in/agustin-rivero-embedded/)
+- LinkedIn: [Agustín Rivero](https://www.linkedin.com/in/agustin-rivero-/)
