@@ -6,6 +6,7 @@
 
 #include "display_manager.h"
 #include "uwb_engine.h"
+#include "ai_engine.h"
 #include "wifi_manager.h"
 #include "mqtt_manager.h"
 #include "nvs_manager.h"
@@ -15,11 +16,12 @@ static const char* LOGTAG = "MAIN";
 
 QueueHandle_t bleCommandQueue;
 
-// Pantalla y UWB
+// Pantalla y UWB con TinyML Edge AI
 void taskUWB(void *pvParameters) {
     init_nvs();
     initDisplay();
     initUWB(IS_ANCHOR);
+    initAIEngine();
 
     uint32_t ultimo_refresco = millis();
     int contador_watchdog = 0;
@@ -27,11 +29,16 @@ void taskUWB(void *pvParameters) {
     for(;;) {
         // El motor UWB debe correr sin interrupciones severas
         processUWB();
-        // Actualizar la pantalla cada 300ms (Evita saturar el bus I2C)
+        
+        // Actualizar inferencia de IA y pantalla cada 300ms
         if(millis() - ultimo_refresco > 300) {
-
             float dist = getCurrentDistance();
-            updateDisplay(IS_ANCHOR, dist);
+            
+            // Ejecutar inferencia TinyML en tiempo real
+            AIInferenceResult ai_res = ai_run_inference();
+            
+            // Actualizar OLED con distancia y predicción
+            updateDisplay(IS_ANCHOR, dist, ai_res.label, ai_res.confidence);
             ultimo_refresco = millis();
         }
 

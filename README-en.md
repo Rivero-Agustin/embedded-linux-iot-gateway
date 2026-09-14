@@ -1,24 +1,25 @@
 <div align="right">
-  🌎 <a href="README-en.md">English</a> | 🇪🇸 <a href="README.md">Español</a>
+  🇪🇸 <a href="README.md">Español</a> | 🌎 <b>English</b>
 </div>
 
-# Industrial IoT Edge Gateway: Custom Embedded Linux (Buildroot) & Automated HIL CI/CD Pipeline
+# Industrial IoT Edge Gateway: TinyML (Edge Impulse), Custom Embedded Linux (Buildroot) & Automated HIL CI/CD Pipeline
 
 [![PlatformIO CI/CD Pipeline](https://github.com/Rivero-Agustin/embedded-linux-iot-gateway/actions/workflows/build.yml/badge.svg)](https://github.com/Rivero-Agustin/embedded-linux-iot-gateway/actions/workflows/build.yml)
+![TinyML](https://img.shields.io/badge/TinyML-Edge_Impulse-0052CC?style=for-the-badge&logo=edgeimpulse&logoColor=white)
 ![Embedded Linux](https://img.shields.io/badge/Embedded_Linux-Buildroot%20%7C%20QEMU-FCC624?style=for-the-badge&logo=linux&logoColor=black)
 ![HIL Testing](https://img.shields.io/badge/CI%2FCD-Hardware--in--the--Loop-0A66C2?style=for-the-badge&logo=githubactions&logoColor=white)
-![FreeRTOS](https://img.shields.io/badge/FreeRTOS-Dual--Core%20Task%20Pinning-green?style=for-the-badge&logo=freertos&logoColor=white)
 ![ESP32](https://img.shields.io/badge/ESP32-ESP--IDF%20%2B%20C%2B%2B-E7352C?style=for-the-badge&logo=espressif&logoColor=white)
+![FreeRTOS](https://img.shields.io/badge/FreeRTOS-Dual--Core%20Task%20Pinning-green?style=for-the-badge&logo=freertos&logoColor=white)
 ![AWS IoT Core](https://img.shields.io/badge/AWS-IoT_Core_MQTTS-FF9900?style=for-the-badge&logo=amazon-aws&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-Edge_Processing-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
 
-An end-to-end **Industrial IoT Collision Avoidance & Edge Gateway** featuring a custom **Embedded Linux (Buildroot)** OS, real-time edge anomaly detection, FreeRTOS dual-core firmware, and a production-grade **CI/CD pipeline with Automated Hardware-in-the-Loop (HIL) Testing**.
+An end-to-end **Industrial IoT Collision Avoidance & Edge Gateway** featuring on-device **TinyML Neural Network Inference (Edge Impulse)**, a custom **Embedded Linux (Buildroot)** OS, secure cloud telemetry via **AWS IoT Core**, and a production-grade **CI/CD pipeline with Automated Hardware-in-the-Loop (HIL) Testing**.
 
 ---
 
 ## 🌟 Executive Summary
 
-> 🎯 **Overview:** Designed for high-risk industrial environments (warehouses, factories, logistics), this project provides a resilient Edge-to-Cloud safety architecture that measures physical distances via UWB with decimetric precision, executes local anomaly and collision hazard filtering on a custom Embedded Linux gateway (>80% cloud traffic reduction), bridges encrypted telemetry to AWS IoT Core, and validates firmware automatically on physical hardware via a custom CI/CD HIL pipeline.
+> 🎯 **Overview:** Designed for mission-critical industrial environments (warehouses, factories, logistics), this project delivers a resilient Edge-to-Cloud architecture that classifies physical kinematics and filters RF multipath noise using an **on-device TinyML model trained with Edge Impulse**, aggregates and evaluates safety rules on a **custom Embedded Linux Gateway (Buildroot)** (>80% cloud egress reduction), publishes TLS-encrypted telemetry to **AWS IoT Core**, and guarantees firmware reliability via an automated **Hardware-in-the-Loop (HIL) CI/CD pipeline** running on physical target boards.
 
 ---
 
@@ -28,30 +29,45 @@ An end-to-end **Industrial IoT Collision Avoidance & Edge Gateway** featuring a 
 
 ### 📡 MQTT Communication Matrix
 
-| Topic                   | Publisher ➔ Subscriber  | Transport / Security         | Payload Structure / Purpose                                                    |
-| :---------------------- | :---------------------- | :--------------------------- | :----------------------------------------------------------------------------- |
-| `gateway/uwb/telemetry` | ESP32 ➔ Linux Gateway   | MQTT (TCP:1883 / Local)      | `{"distance_m": 1.45, "role": "ANCHOR"}` — Raw proximity data.                 |
-| `gateway/uwb/alerts`    | Gateway ➔ AWS IoT Core  | MQTTS (TLS 1.2:8883 / Cloud) | `{"alerta": "PELIGRO_SOSTENIDO", "distancia": 1.45}` — Critical event payload. |
-| `gateway/uwb/commands`  | Cloud / Gateway ➔ ESP32 | MQTT (TCP:1883 / Local)      | Remote calibration & runtime threshold parameter updates.                      |
+| Topic                   | Publisher ➔ Subscriber  | Transport / Security         | Payload Structure / Purpose                                                                                                                               |
+| :---------------------- | :---------------------- | :--------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gateway/uwb/telemetry` | ESP32 ➔ Linux Gateway   | MQTT (TCP:1883 / Local)      | `{"distance_m": 1.45, "ai_state": "vehicle_hazard", "ai_confidence": 0.92, "anchor_id": "...", "tag_id": "..."}` — Telemetry with TinyML inference state. |
+| `gateway/uwb/alerts`    | Gateway ➔ AWS IoT Core  | MQTTS (TLS 1.2:8883 / Cloud) | `{"alerta": "COLISION_VEHICULAR_INMINENTE", "severidad": "CRITICA", "distancia_m": 1.45, "confianza": 0.92}` — AI-classified critical alert payload.      |
+| `gateway/uwb/commands`  | Cloud / Gateway ➔ ESP32 | MQTT (TCP:1883 / Local)      | Remote calibration & runtime threshold parameter updates.                                                                                                 |
 
 ---
 
 ## ⚙️ Key Engineering Highlights & Architectural Decisions
 
-### 1. ⚡ Asymmetric FreeRTOS Dual-Core Architecture (ESP32)
+### 1. 🧠 On-Device TinyML Inference (Edge Impulse C++ SDK)
 
-Microcontroller tasks are strategically segregated across physical CPU cores to guarantee hard real-time constraints:
+The ESP32 firmware executes a neural network trained with Edge Impulse to classify motion kinematics and wireless channel quality in real time:
 
-- **Core 1 (High Priority - Level 5):** Executes time-critical UWB Two-Way Ranging (TWR) algorithms operating at nanosecond resolution and drives the I2C SSD1306 OLED display using non-blocking updates (300 ms throttling) to prevent I2C bus saturation.
-- **Core 0 (Standard Priority - Level 2):** Manages the networking stack, including Wi-Fi reconnection state machines and the native ESP-IDF MQTT client (`esp_mqtt_client`) with transmission queues.
-- **PSRAM & Custom Partitioning:** Configured with custom flash partition tables (`partitions.csv`) and PSRAM cache fix flags for high-throughput sensor telemetry.
+- **Multi-Channel RF Feature Input:** The network simultaneously evaluates 3 physical layer metrics provided by the DecaWave DW1000 UWB transceiver:
+  1. `distance` (computed via Time-of-Flight ranging).
+  2. `rx_power` (total received radio frequency signal power).
+  3. `fp_power` (first path signal power).
+- **4-Class Hazard Classification:**
+  - `vehicle_hazard`: Rapid approach of industrial machinery / forklifts towards personnel.
+  - `pedestrian_approach`: Standard controlled human movement within the sensing zone.
+  - `static_safe`: Stationary nodes in safe operating conditions.
+  - `nlos_noise`: Robust rejection of false positives caused by physical obstructions or Non-Line-of-Sight (NLOS) reflections, recognized through the characteristic divergence between `rx_power` and `fp_power`.
+- **Deterministic Sliding Window:** Circular temporal buffer of 15 samples ($15 \times 3 = 45$ floats) with zero heap allocations inside the inference loop, running in ~ms under FreeRTOS.
 
-### 2. 🐧 Custom Embedded Linux Gateway (Buildroot + QEMU)
+### 2. ⚡ Asymmetric FreeRTOS Dual-Core Architecture (ESP32)
+
+Microcontroller tasks are pinned to physical cores to guarantee hard real-time deadlines:
+
+- **Core 1 (High Priority - Level 5):** Executes nanosecond UWB Time-of-Flight ranging, runs the **Edge Impulse TinyML classifier**, and throttles SSD1306 OLED updates (300 ms) to prevent I2C bus saturation.
+- **Core 0 (Standard Priority - Level 2):** Manages the Wi-Fi reconnection state machine and the native ESP-IDF MQTT client (`esp_mqtt_client`) via FreeRTOS queues.
+- **Memory Management:** Configured for external PSRAM (`BOARD_HAS_PSRAM`) with custom flash partitions (`partitions.csv`).
+
+### 3. 🐧 Custom Embedded Linux Gateway (Buildroot + QEMU)
 
 - **Minimalist OS Footprint:** Built using a customized Buildroot Linux configuration emulated under QEMU, tailored with minimal packages (Python runtime, Mosquitto broker, OpenSSL).
-- **Edge Analytics & Bandwidth Optimization:** A Python edge service processes incoming raw telemetry via a sliding-window buffer ($N=5$). By evaluating safety thresholds locally, cloud payload ingestion is reduced by **>80%**, forwarding only actionable alerts to AWS.
+- **Two-Tier Edge Intelligence & Cloud Cost Reduction:** The Python edge daemon acts as a supervisory tier: evaluates the ESP32 TinyML classification (`vehicle_hazard` confidence > 60%), applies fallback spatial heuristics, and slashes cloud ingress by **>80%**.
 
-### 3. 🔐 Zero-Trust Cloud Security Model (AWS IoT Core)
+### 4. 🔐 Zero-Trust Cloud Security Model (AWS IoT Core)
 
 - Local edge nodes communicate over an isolated local network (MQTT port 1883).
 - The Linux Edge Gateway acts as a secure cryptographic boundary, encrypting outbound alert payloads with **TLS v1.2 / MQTTS (Port 8883)** using X.509 device certificates and private keys generated in AWS IoT Core.
@@ -71,20 +87,22 @@ Fully automated two-stage workflow via **GitHub Actions**:
 
 ## 🧠 Edge Computing & Anomaly Detection Logic
 
-The Edge Gateway maintains a bounded FIFO queue ($N=5$) to evaluate spatial-temporal safety criteria locally:
+The system incorporates a two-tier intelligence model (Microcontroller + Edge Gateway):
 
 ```mermaid
 flowchart TD
-    A["Raw Telemetry Ingestion (distance_m)"] --> B["Append to FIFO Buffer (Max 5 Samples)"]
-    B --> C{"Consecutive Readings < 2.0m\n(Last 3 Samples)?"}
-    C -- Yes --> D["🚨 Publish Alert: PELIGRO_SOSTENIDO ➔ AWS"]
-    C -- No --> E{"|Sample[i] - Sample[i-1]| > 5.0m\n(Glitch / Jump)?"}
-    E -- Yes --> F["⚠️ Publish Anomaly: SALTO_BRUSCO ➔ AWS"]
-    E -- No --> G["Normal Operation (Drop local payload / Zero Cloud Cost)"]
+    A["Raw UWB Readings (distance, rx_power, fp_power)"] --> B["FIFO Buffer (15 Samples x 3 Axes)"]
+    B --> C["🧠 TinyML Inference (Edge Impulse on ESP32)"]
+    C -->|Class: nlos_noise| D["NLOS Noise Filter (Drop locally)"]
+    C -->|Class: vehicle_hazard / pedestrian_approach| E["Publish Telemetry to Gateway (Local MQTT)"]
+    E --> F{"AI Confidence > 60% or Fallback Hazard Rule Triggered?"}
+    F -- Yes --> G["🚨 Publish Critical Alert ➔ AWS IoT Core (MQTTS TLS 1.2)"]
+    F -- No --> H["Normal Safe State (Zero Cloud Egress Cost)"]
 ```
 
-1. **Sustained Danger (`PELIGRO_SOSTENIDO`):** Triggered when distance $< 2.0\,\text{m}$ for 3 consecutive samples, discarding transient false positives.
-2. **Sensor Glitch / Abrupt Jump (`SALTO_BRUSCO`):** Triggered when consecutive delta $|\Delta d| > 5.0\,\text{m}$, filtering out multipath interference or NLOS (Non-Line-of-Sight) reflection spikes.
+1. **Primary TinyML Classifier:** The neural model distinguishes between forklift collision threats, pedestrian movement, and NLOS multipath reflections.
+2. **Fallback Sustained Danger Rule:** The Gateway confirms whether sustained proximity ($< 2.0\,\text{m}$ for 3 consecutive cycles) triggers redundant safety alerts.
+3. **Sensor Glitch / Abrupt Jump:** Sudden deviations $|\Delta d| > 5.0\,\text{m}$ are flagged as sensor glitches or transient line-of-sight dropouts.
 
 ---
 
@@ -95,19 +113,29 @@ embedded-linux-iot-gateway/
 ├── .github/
 │   └── workflows/
 │       └── build.yml               # GitHub Actions CI/CD (Native tests + HIL Runner + CD)
+├── dataset/                        # Real UWB RF datasets for TinyML training
+│   ├── nlos_noise/                 # Non-Line-Of-Sight / multipath reflection samples
+│   ├── pedestrian_approach/        # Controlled pedestrian approach samples
+│   ├── static_safe/                # Static safe zone samples
+│   └── vehicle_hazard/             # High-speed vehicle approach samples
 ├── docs/
 │   ├── architecture.diagram.png    # High-resolution system architecture diagram
 │   └── pipeline.cicd.png           # Hardware-in-the-Loop CI/CD pipeline diagram
 ├── firmware/                       # ESP32 C++ / FreeRTOS / ESP-IDF Source
 │   ├── include/
+│   │   ├── ai_engine.h             # TinyML state machine & API definitions
 │   │   ├── config.example.h        # Configuration template (Credentials & Broker URI)
 │   │   ├── display_manager.h       # OLED display abstractions
 │   │   ├── mqtt_manager.h          # ESP-IDF native MQTT management
 │   │   ├── nvs_manager.h           # Non-Volatile Storage handlers
-│   │   ├── telemetry_manager.h     # JSON payload serialization (cJSON)
-│   │   ├── uwb_engine.h            # DW1000 UWB driver & ranging state machine
+│   │   ├── telemetry_manager.h     # JSON serialization (cJSON) with AI predictions
+│   │   ├── uwb_engine.h            # DW1000 UWB driver & RF feature extraction
 │   │   └── wifi_manager.h          # Wi-Fi station mode & auto-reconnect routines
+│   ├── lib/
+│   │   ├── DW1000/                 # DecaWave UWB transceiver driver
+│   │   └── ai_model/               # Edge Impulse C++ SDK & trained TFLite model
 │   ├── src/
+│   │   ├── ai_engine.cpp           # Real-time TinyML inferencing engine
 │   │   ├── main.cpp                # Core pinning, dual FreeRTOS tasks & entrypoint
 │   │   └── *.cpp                   # Module implementations
 │   ├── test/
@@ -116,8 +144,8 @@ embedded-linux-iot-gateway/
 │   └── platformio.ini              # Multi-environment PlatformIO configuration
 ├── gateway/
 │   └── gateway.py                  # Buildroot Edge Bridge (Local MQTT + TLS AWS Uplink)
-├── README.md                       # English documentation
-└── README-es.md                    # Documentación en español
+├── README.md                       # Main documentation (Spanish)
+└── README-en.md                    # English documentation
 ```
 
 ---
@@ -188,8 +216,9 @@ pio run -e esp-wrover-kit --target upload
 
 ---
 
-## �️ Tech Stack & Tools
+## 🛠️ Tech Stack & Tools
 
+- **Edge AI & Machine Learning:** TinyML, Edge Impulse C++ Inferencing SDK, TensorFlow Lite for Microcontrollers (TFLite Micro).
 - **Firmware:** C/C++, FreeRTOS, ESP-IDF Framework, PlatformIO, Unity Test Framework.
 - **Transceivers & Sensors:** DecaWave DW1000 (Ultra-Wideband), SSD1306 (I2C OLED).
 - **Edge Computing & OS:** Embedded Linux, Buildroot, QEMU Emulation, Python 3, Paho-MQTT, Mosquitto.

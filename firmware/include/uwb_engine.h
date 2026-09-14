@@ -14,3 +14,5 @@ void uwb_telemetry_task(void *pvParameters);
 void initUWB(bool isAnchor);
 void processUWB();
 float getCurrentDistance();
+float getCurrentRXPower();
+float getCurrentFPPower();

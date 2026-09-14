@@ -3,6 +3,8 @@
 # ==========================================
 firmware/include/config.h
 firmware/actualizarIP.txt
+.github/workflows/Iniciar_Runner.txt
+.github/workflows/*.txt
 
 # ==========================================
 # 2. Compilación de Firmware (PlatformIO / ESP32)
@@ -26,6 +28,8 @@ __pycache__/
 .venv/
 venv/
 *.env
+gateway/Iniciar_QEMU.txt
+gateway/*.txt
 
 # ==========================================
 # 4. Entorno de desarrollo (VS Code / OS)

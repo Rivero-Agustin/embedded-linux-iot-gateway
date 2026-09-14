@@ -9,31 +9,45 @@
 
 extern QueueHandle_t bleCommandQueue;
 
+#include "ai_engine.h"
+
 static const char* LOGTAG = "UWB";
 
 float current_distance = 0.0;
+float current_rx_power = 0.0;
+float current_fp_power = 0.0;
 String ultimo_comando_uwb = "";
 
 void uwb_telemetry_task(void *pvParameters) {
     ESP_LOGI(LOGTAG, "Tarea de telemetría UWB iniciada");
     
     while (1) {
-        // Acá iría tu lógica real para leer el sensor UWB o el módulo de RF.
-        // Para probar la arquitectura de datos, generamos variables simuladas:
         const char* current_tag = "TAG_UWB_01";
         float measured_distance = getCurrentDistance(); // Metros
+        AIInferenceResult ai_res = ai_get_last_result();
         
-        // Publicar
-        publish_uwb_telemetry(global_mqtt_client, current_tag, measured_distance);
+        // Publicar telemetría enriquecida con predicción TinyML
+        publish_uwb_telemetry(global_mqtt_client, current_tag, measured_distance, ai_res.label, ai_res.confidence);
         
-        // Frecuencia de muestreo: Esperar 2 segundos (2000 ms) antes de la próxima lectura
-        vTaskDelay(pdMS_TO_TICKS(2000));
+        // Frecuencia de publicación MQTT: 1 segundo
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
 // CALLBACKS DEL UWB - se ejecutan automáticamente en segundo plano cuando la radio recibe datos
 void newRange() {
-    current_distance = DW1000Ranging.getDistantDevice()->getRange();
+    DW1000Device* dev = DW1000Ranging.getDistantDevice();
+    if (dev != nullptr) {
+        current_distance = dev->getRange();
+        current_rx_power = dev->getRXPower();
+        current_fp_power = dev->getFPPower();
+
+        // 1. Alimentar el buffer deslizante de la Red Neuronal (TinyML)
+        ai_feed_sensor_sample(current_distance, current_rx_power, current_fp_power);
+
+        // 2. Stream de datos por Serial para monitoreo o Data Logging
+        Serial.printf("DATA,%lu,%.3f,%.2f,%.2f\n", millis(), current_distance, current_rx_power, current_fp_power);
+    }
 }
 void newDevice(DW1000Device* device) { ESP_LOGI(LOGTAG, "Dispositivo conectado."); }
 void inactiveDevice(DW1000Device* device) { ESP_LOGI(LOGTAG, "Dispositivo desconectado."); }
@@ -89,4 +103,12 @@ void processUWB() {
 
 float getCurrentDistance() {
     return current_distance;
+}
+
+float getCurrentRXPower() {
+    return current_rx_power;
+}
+
+float getCurrentFPPower() {
+    return current_fp_power;
 }

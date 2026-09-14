@@ -52,12 +52,38 @@ def on_local_connect(client, userdata, flags, rc):
 def on_local_message(client, userdata, msg):
     try:
         datos = json.loads(msg.payload.decode())
-        # CORRECCIÓN: Usamos la misma clave que genera el cJSON del ESP32
-        distancia = float(datos['distance_m'])
-        print(f"-> Local reporta: {distancia}m")
+        distancia = float(datos.get('distance_m', 0.0))
+        ai_state = datos.get('ai_state', 'unknown')
+        ai_conf = float(datos.get('ai_confidence', 0.0))
+
+        print(f"-> [ESP32] Dist: {distancia:4.2f}m | TinyML AI: {ai_state} ({ai_conf * 100:.0f}%)")
+
+        # Alerta Cloud basada en inferencia TinyML del ESP32
+        if ai_state == "vehicle_hazard" and ai_conf > 0.60:
+            alerta = {
+                "alerta": "COLISION_VEHICULAR_INMINENTE",
+                "severidad": "CRITICA",
+                "distancia_m": distancia,
+                "confianza": ai_conf,
+                "anchor_id": datos.get('anchor_id', 'unknown'),
+                "tag_id": datos.get('tag_id', 'unknown')
+            }
+            print("[AWS] 🚨 Publicando ALERTA CRÍTICA de colisión vehicular a AWS IoT Core...")
+            aws_client.publish("gateway/uwb/alerts", json.dumps(alerta))
+
+        elif ai_state == "pedestrian_approach" and distancia < 2.0:
+            alerta = {
+                "alerta": "PROXIMIDAD_PEATON",
+                "severidad": "ADVERTENCIA",
+                "distancia_m": distancia,
+                "confianza": ai_conf
+            }
+            aws_client.publish("gateway/uwb/alerts", json.dumps(alerta))
+
+        # Reglas estadísticas de respaldo
         detectar_anomalia(distancia)
     except Exception as e:
-        print(f"Error procesando dato local: {e}") # Para no sufrir en silencio
+        print(f"Error procesando dato local: {e}")
 
 local_client = mqtt.Client()
 local_client.on_connect = on_local_connect

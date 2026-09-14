@@ -9,7 +9,7 @@
 static const char *LOGTAG = "TELEMETRY";
 
 // Función para construir y publicar el JSON localmente al Gateway
-void publish_uwb_telemetry(esp_mqtt_client_handle_t client, const char* tag_id, float distance_m) {
+void publish_uwb_telemetry(esp_mqtt_client_handle_t client, const char* tag_id, float distance_m, const char* ai_state, float ai_confidence) {
     if (client == NULL) return;
 
     // 1. Obtener la MAC del ESP32 para identificar este nodo (Ancla)
@@ -22,10 +22,12 @@ void publish_uwb_telemetry(esp_mqtt_client_handle_t client, const char* tag_id, 
     // 2. Crear el objeto JSON base
     cJSON *root = cJSON_CreateObject();
     
-    // 3. Poblar el JSON con la telemetría
+    // 3. Poblar el JSON con la telemetría y resultados de TinyML
     cJSON_AddStringToObject(root, "anchor_id", anchor_id);
     cJSON_AddStringToObject(root, "tag_id", tag_id);
     cJSON_AddNumberToObject(root, "distance_m", distance_m);
+    cJSON_AddStringToObject(root, "ai_state", ai_state);
+    cJSON_AddNumberToObject(root, "ai_confidence", ai_confidence);
 
     // 4. Convertir a string sin formato (ocupa menos bytes que Print normal)
     char *json_string = cJSON_PrintUnformatted(root);

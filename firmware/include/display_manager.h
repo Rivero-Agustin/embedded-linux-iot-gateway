@@ -7,5 +7,5 @@
 
 // Funciones públicas
 void initDisplay();
-void updateDisplay(bool isAnchor, float distance);
+void updateDisplay(bool isAnchor, float distance, const char* ai_label = "INICIALIZANDO", float confidence = 0.0f);
 void showDebugMessage(const char* message);

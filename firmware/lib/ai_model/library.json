@@ -1,0 +1,18 @@
+{
+  "name": "ai_model",
+  "version": "1.0.0",
+  "build": {
+    "flags": [
+      "-I.",
+      "-Iedge-impulse-sdk",
+      "-Imodel-parameters",
+      "-Itflite-model",
+      "-Iedge-impulse-sdk/porting/espressif/esp-dsp/modules/common/include",
+      "-Iedge-impulse-sdk/porting/espressif/esp-dsp/modules/fft/include",
+      "-Iedge-impulse-sdk/porting/espressif/ESP-NN/include",
+      "-Iedge-impulse-sdk/third_party/flatbuffers/include",
+      "-Iedge-impulse-sdk/third_party/gemmlowp",
+      "-Iedge-impulse-sdk/third_party/ruy"
+    ]
+  }
+}
